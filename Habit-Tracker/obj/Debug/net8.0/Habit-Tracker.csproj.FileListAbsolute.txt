@@ -38,3 +38,4 @@ C:\Users\justi\source\repos\Habit-Tracker\Habit-Tracker\obj\Debug\net8.0\refint\
 C:\Users\justi\source\repos\Habit-Tracker\Habit-Tracker\obj\Debug\net8.0\Habit-Tracker.pdb
 C:\Users\justi\source\repos\Habit-Tracker\Habit-Tracker\obj\Debug\net8.0\Habit-Tracker.genruntimeconfig.cache
 C:\Users\justi\source\repos\Habit-Tracker\Habit-Tracker\obj\Debug\net8.0\ref\Habit-Tracker.dll
+C:\Users\justi\source\repos\Habit-Tracker\Habit-Tracker\obj\Debug\net8.0\Habit-Tracker.sourcelink.json

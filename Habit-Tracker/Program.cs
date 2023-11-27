@@ -3,46 +3,11 @@ using System.Globalization;
 
 string connectionString = @"Data Source=habit-Tracker.db";
 List<string> dbNames = new List<string>();
+string dbName;
 
-using (var connection = new  SqliteConnection(connectionString))
-{
-    connection.Open();
+MainMenu(connectionString, dbNames);
 
-    var dbCmd = connection.CreateCommand();
-    dbCmd.CommandText = @"SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite%' ORDER BY name";
-
-    SqliteDataReader reader = dbCmd.ExecuteReader();
-
-    var index = 0;
-
-    Console.WriteLine("Habits:\n\n");
-
-    if (reader.HasRows)
-    {
-        while (reader.Read())
-        {
-            var tableName = reader.GetString(0);
-
-            if (!dbNames.Contains(tableName))
-            {
-                dbNames.Add(tableName);
-            }
-
-            var formattedTableName = FormatTableName(tableName);
-            Console.WriteLine($"{++index}: {formattedTableName}");
-        }
-    }
-
-    connection.Close();
-}
-
-Console.WriteLine("\n---------------------------------------------------------------------------------------------------------");
-
-Console.WriteLine("\nChoose habit to track (enter corresponding number), or press 0 to create new habit.");
-
-Console.WriteLine("\n---------------------------------------------------------------------------------------------------------\n\n");
-
-
+/*
 using (var connection = new SqliteConnection(connectionString))
 {
     connection.Open();
@@ -54,7 +19,7 @@ using (var connection = new SqliteConnection(connectionString))
 
     connection.Close();
 }
-
+*/
 
 
 // GetUserInput();
@@ -66,7 +31,7 @@ string FormatTableName(string tableName)
     if (formattedTableName.IndexOf("_") != -1)
     {
         formattedTableName = formattedTableName.Replace("_", " ").ToLower();
-        
+
     }
 
     char firstLetter = char.ToUpper(formattedTableName[0]);
@@ -86,7 +51,7 @@ void GetUserInput()
     {
         Console.WriteLine("\n\nMAIN MENU");
         Console.WriteLine("\nWhat would you like to do?");
-        Console.WriteLine("\nType 0 to close the application.");
+        Console.WriteLine("\nType 0 to go back to the main menu.");
         Console.WriteLine("Type 1 to View All Records.");
         Console.WriteLine("Type 2 to Insert Record.");
         Console.WriteLine("Type 3 to Update Record.");
@@ -100,7 +65,6 @@ void GetUserInput()
             case "0":
                 Console.WriteLine("\nGoodbye!\n");
                 closeApp = true;
-                Environment.Exit(0);
                 break;
             case "1":
                 GetAllRecords();
@@ -145,7 +109,7 @@ void GetAllRecords()
     {
         connection.Open();
         var tableCmd = connection.CreateCommand();
-        tableCmd.CommandText = "SELECT * FROM drinking_water";
+        tableCmd.CommandText = $"SELECT * FROM {dbName}";
 
         List<DrinkingWater> tableData = new();
 
@@ -286,6 +250,78 @@ string GetDateInput()
     }
 
     return dateInput;
+}
+
+void MainMenu(string connectionString, List<string> dbNames)
+{
+    bool closeApp = false;
+
+    while (!closeApp)
+    {
+        using (var connection = new SqliteConnection(connectionString))
+        {
+            connection.Open();
+
+            var dbCmd = connection.CreateCommand();
+            dbCmd.CommandText = @"SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite%' ORDER BY name";
+
+            SqliteDataReader reader = dbCmd.ExecuteReader();
+
+            var index = 0;
+
+            Console.WriteLine("Habits:\n\n");
+
+            if (reader.HasRows)
+            {
+                while (reader.Read())
+                {
+                    var tableName = reader.GetString(0);
+
+                    if (!dbNames.Contains(tableName))
+                    {
+                        dbNames.Add(tableName);
+                    }
+
+                    var formattedTableName = FormatTableName(tableName);
+                    Console.WriteLine($"{++index}: {formattedTableName}");
+                }
+            }
+
+            connection.Close();
+        }
+
+        Console.WriteLine("\n---------------------------------------------------------------------------------------------------------");
+
+        Console.WriteLine("\nChoose habit to track (enter corresponding number), or press 0 to create new habit.");
+
+        Console.WriteLine("\n---------------------------------------------------------------------------------------------------------\n\n");
+
+        var userChoice = Console.ReadLine().Trim();
+
+        while (!int.TryParse(userChoice, out _))
+        {
+            Console.WriteLine("\n\nInvalid input. Please try again.\n\n");
+
+            userChoice = Console.ReadLine().Trim();
+
+        }
+
+        var dbNamesIndex = int.Parse(userChoice) - 1;
+
+        switch (userChoice)
+        {
+            case "0":
+                closeApp = true;
+                Environment.Exit(0);
+                break;
+            case "1":
+                dbName = dbNames[dbNamesIndex];
+                GetUserInput();
+                break;
+        }
+    }
+
+    
 }
 
 public class DrinkingWater
