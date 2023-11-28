@@ -7,23 +7,6 @@ string dbName;
 
 MainMenu(connectionString, dbNames);
 
-/*
-using (var connection = new SqliteConnection(connectionString))
-{
-    connection.Open();
-    var tableCmd = connection.CreateCommand();
-
-    tableCmd.CommandText = @"CREATE TABLE IF NOT EXISTS drinking_water (Id INTEGER PRIMARY KEY AUTOINCREMENT, Date TEXT, Quantity INTEGER)";
-
-    tableCmd.ExecuteNonQuery();
-
-    connection.Close();
-}
-*/
-
-
-// GetUserInput();
-
 string FormatTableName(string tableName)
 {
     string formattedTableName = tableName;
@@ -63,7 +46,6 @@ void GetUserInput()
         switch (commandInput)
         {
             case "0":
-                Console.WriteLine("\nGoodbye!\n");
                 closeApp = true;
                 break;
             case "1":
@@ -95,8 +77,16 @@ void Insert()
     using (var connection = new SqliteConnection(connectionString))
     {
         connection.Open();
+
+        var colCmd = connection.CreateCommand();
+        colCmd.CommandText = $"SELECT * FROM {dbName}";
+
+        var reader = colCmd.ExecuteReader();
+
+        var quantityColumnName = reader.GetName(2);
+
         var tableCmd = connection.CreateCommand();
-        tableCmd.CommandText = $@"INSERT INTO drinking_water (date, quantity) VALUES ('{date}', {quantity})";
+        tableCmd.CommandText = $@"INSERT INTO {dbName} (date, {quantityColumnName}) VALUES ('{date}', {quantity})";
 
         tableCmd.ExecuteNonQuery();
         connection.Close();
@@ -108,10 +98,18 @@ void GetAllRecords()
     using (var connection = new SqliteConnection(connectionString))
     {
         connection.Open();
+
+        var colCmd = connection.CreateCommand();
+        colCmd.CommandText = $"SELECT * FROM {dbName}";
+
+        var colReader = colCmd.ExecuteReader();
+
+        var quantityColumnName = colReader.GetName(2);
+
         var tableCmd = connection.CreateCommand();
         tableCmd.CommandText = $"SELECT * FROM {dbName}";
 
-        List<DrinkingWater> tableData = new();
+        List<Habit> tableData = new();
 
         // tableCmd is executed, and returns a Reader object that can read the data retrieved
         SqliteDataReader reader = tableCmd.ExecuteReader();
@@ -121,7 +119,7 @@ void GetAllRecords()
             while (reader.Read())
             {
                 tableData.Add(
-                    new DrinkingWater
+                    new Habit
                     {
                         Id = reader.GetInt32(0),
                         Date = DateTime.ParseExact(reader.GetString(1), "dd-MM-yy", new CultureInfo("en-US")),
@@ -142,7 +140,7 @@ void GetAllRecords()
         foreach (var dw in tableData)
         {
 
-            Console.WriteLine($"{dw.Id} - {dw.Date.ToString("dd-MM-yyyy")} - Quantity: {dw.Quantity}");
+            Console.WriteLine($"{dw.Id} - {dw.Date.ToString("dd-MM-yyyy")} - {quantityColumnName}: {dw.Quantity}");
 
         }
 
@@ -162,8 +160,15 @@ void Update()
     {
         connection.Open();
 
+        var colCmd = connection.CreateCommand();
+        colCmd.CommandText = $"SELECT * FROM {dbName}";
+
+        var reader = colCmd.ExecuteReader();
+
+        var quantityColumnName = reader.GetName(2);
+
         var checkCmd = connection.CreateCommand();
-        checkCmd.CommandText = $"SELECT EXISTS(SELECT 1 FROM drinking_water WHERE Id = {recordId})";
+        checkCmd.CommandText = $"SELECT EXISTS(SELECT 1 FROM {dbName} WHERE Id = {recordId})";
         int checkQuery = Convert.ToInt32(checkCmd.ExecuteScalar());
 
         if (checkQuery == 0)
@@ -178,7 +183,7 @@ void Update()
         int quantity = GetNumberInput("\n\nPlease insert number of glasses or other measure of your choice (no decimals allowed)\n\n");
 
         var tableCmd = connection.CreateCommand();
-        tableCmd.CommandText = $"UPDATE drinking_water SET date = '{date}', quantity = {quantity} WHERE Id = {recordId}";
+        tableCmd.CommandText = $"UPDATE {dbName} SET date = '{date}', {quantityColumnName} = {quantity} WHERE Id = {recordId}";
 
         tableCmd.ExecuteNonQuery();
 
@@ -199,7 +204,7 @@ void Delete()
         connection.Open();
         var tableCmd = connection.CreateCommand();
 
-        tableCmd.CommandText = $"DELETE from drinking_water WHERE Id = '{recordId}'";
+        tableCmd.CommandText = $"DELETE from {dbName} WHERE Id = '{recordId}'";
 
         int rowCount = tableCmd.ExecuteNonQuery();
 
@@ -212,8 +217,6 @@ void Delete()
     }
 
     Console.WriteLine($"\n\nRecord with Id {recordId} was deleted. \n\n");
-
-    GetUserInput();
 }
 
 int GetNumberInput(string message)
@@ -263,7 +266,7 @@ void MainMenu(string connectionString, List<string> dbNames)
             connection.Open();
 
             var dbCmd = connection.CreateCommand();
-            dbCmd.CommandText = @"SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite%' ORDER BY name";
+            dbCmd.CommandText = @"SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite%'";
 
             SqliteDataReader reader = dbCmd.ExecuteReader();
 
@@ -292,7 +295,7 @@ void MainMenu(string connectionString, List<string> dbNames)
 
         Console.WriteLine("\n---------------------------------------------------------------------------------------------------------");
 
-        Console.WriteLine("\nChoose habit to track (enter corresponding number), or press 0 to create new habit.");
+        Console.WriteLine("\nChoose habit to track (enter corresponding number), or press 0 to create new habit. Enter -1 to close the program.");
 
         Console.WriteLine("\n---------------------------------------------------------------------------------------------------------\n\n");
 
@@ -306,25 +309,66 @@ void MainMenu(string connectionString, List<string> dbNames)
 
         }
 
-        var dbNamesIndex = int.Parse(userChoice) - 1;
-
-        switch (userChoice)
+        if (userChoice == "-1")
         {
-            case "0":
-                closeApp = true;
-                Environment.Exit(0);
-                break;
-            case "1":
-                dbName = dbNames[dbNamesIndex];
-                GetUserInput();
-                break;
+            Console.WriteLine("Goodbye!");
+            closeApp = true;
+            Environment.Exit(0);
         }
+
+        else if (userChoice == "0")
+        {
+            CreateNewHabit();
+        }
+
+        else
+        {
+            try
+            {
+                var dbNameIndex = int.Parse(userChoice) - 1;
+
+                dbName = dbNames[dbNameIndex];
+
+                GetUserInput();
+            }
+
+            catch (Exception ex)
+            {
+                Console.WriteLine("\n\nInvalid input.\n\n");
+            }
+        }
+
     }
 
     
 }
 
-public class DrinkingWater
+void CreateNewHabit()
+{
+    Console.Clear();
+    Console.WriteLine("\n\nPlease enter the habit you wish to track (ex. 'working out')\n\n");
+
+    var habit = Console.ReadLine().Trim().ToLower().Replace(" ", "_");
+
+    Console.WriteLine("How is your habit measured? (ex. 'hours', 'cups', 'calories')");
+    var measurement = Console.ReadLine();
+    measurement = char.ToUpper(measurement[0]) + measurement.Substring(1);
+
+    using (var connection = new SqliteConnection(connectionString))
+    {
+        connection.Open();
+        var tableCmd = connection.CreateCommand();
+
+        tableCmd.CommandText = @$"CREATE TABLE IF NOT EXISTS {habit} (Id INTEGER PRIMARY KEY AUTOINCREMENT, Date TEXT, {measurement} INTEGER)";
+
+        tableCmd.ExecuteNonQuery();
+
+        connection.Close();
+    }
+
+}
+
+public class Habit
 {
     public int Id { get; set; }
     public DateTime Date { get; set; }
