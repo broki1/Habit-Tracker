@@ -39,6 +39,7 @@ void GetUserInput()
         Console.WriteLine("Type 2 to Insert Record.");
         Console.WriteLine("Type 3 to Update Record.");
         Console.WriteLine("Type 4 to Delete Record.");
+        Console.WriteLine("Type 5 to View Past Year's Stats");
         Console.WriteLine("------------------------------------------------");
 
         string commandInput = Console.ReadLine().Trim();
@@ -60,8 +61,11 @@ void GetUserInput()
             case "4":
                 Delete();
                 break;
+            case "5":
+                GetPastYearsStats();
+                break;
             default:
-                Console.WriteLine("\nInvalid Command. Please type a number from 0 to 4.\n");
+                Console.WriteLine("\nInvalid Command. Please type a number from 0 to 5.\n");
                 break;
         }
 
@@ -261,6 +265,8 @@ void MainMenu(string connectionString, List<string> dbNames)
 
     while (!closeApp)
     {
+        Console.Clear();
+
         using (var connection = new SqliteConnection(connectionString))
         {
             connection.Open();
@@ -366,6 +372,32 @@ void CreateNewHabit()
         connection.Close();
     }
 
+}
+void GetPastYearsStats()
+{
+    using (var connection = new SqliteConnection(connectionString))
+    {
+        connection.Open();
+
+        var colNameCmd = connection.CreateCommand();
+        colNameCmd.CommandText = $"SELECT * FROM {dbName}";
+        var reader = colNameCmd.ExecuteReader();
+        Console.WriteLine($"{reader.GetName(2)}");
+
+        var amtCmd = connection.CreateCommand();
+        amtCmd.CommandText = $"SELECT SUM({reader.GetName(2)}) FROM {dbName}";
+        var totalAmt = amtCmd.ExecuteScalar();
+
+        var timesCmd = connection.CreateCommand();
+        timesCmd.CommandText = $"SELECT COUNT(*) FROM {dbName}";
+        var numTimes = timesCmd.ExecuteScalar();
+
+        Console.WriteLine($"\n\nNumber of Times:\t\tTotal ({reader.GetName(2)}):");
+        Console.WriteLine($"{numTimes}\t\t\t\t{totalAmt}");
+
+        connection.Close();
+
+    }
 }
 
 public class Habit
